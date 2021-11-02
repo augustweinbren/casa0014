@@ -44,6 +44,7 @@ void loop() {
   
   // Use WiFiClient class to create TCP connections
   WiFiClient client;
+  // The data can accessed from a web browser via [ipaddress]:80
   const int httpPort = 80;
   if (!client.connect(host, httpPort)) {
     Serial.println("connection failed");
