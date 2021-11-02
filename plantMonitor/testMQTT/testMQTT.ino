@@ -106,7 +106,7 @@ void reconnect() {
     if (client.connect(clientId.c_str(), mqttuser, mqttpass)) {
       Serial.println("connected");
       // ... and subscribe to messages on broker
-      client.subscribe("student/CASA0014/plant/ucjtdjw/inTopic");
+      client.subscribe("student/CASA0014/plant/ucfnawe/inTopic");
     } else {
       Serial.print("failed, rc=");
       Serial.print(client.state());
@@ -120,7 +120,7 @@ void reconnect() {
 // This function sends (publishes) a message to a MQTT topic
 // once a connection is established with the broker. It sends
 // an incrementing variable called value to the topic:
-// "student/CASA0014/plant/ucjtdjw"
+// "student/CASA0014/plant/ucfnawe"
 
 void sendMQTT() {
 
@@ -132,7 +132,7 @@ void sendMQTT() {
   snprintf (msg, 50, "hello world #%ld", value);
   Serial.print("Publish message: ");
   Serial.println(msg);
-  client.publish("student/CASA0014/plant/ucjtdjw", msg);
+  client.publish("student/CASA0014/plant/ucfnawe", msg);
 
 }
 

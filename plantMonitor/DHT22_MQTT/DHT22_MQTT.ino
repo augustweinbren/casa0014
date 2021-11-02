@@ -1,11 +1,10 @@
 /*
-    Get date and time - uses the ezTime library at https://github.com/ropg/ezTime -
-    and then show data from a DHT22 on a web page served by the Huzzah and
-    push data to an MQTT server - uses library from https://pubsubclient.knolleary.net
-
-    Duncan Wilson
+    Collects humidity, temperature and moisture readings from the DHT22 and nail-based sensors.
+    Publishes readings to both a web server and an MQTT server.  
+    
+    August Weinbren
     CASA0014 - 2 - Plant Monitor Workshop
-    May 2020
+    Nov 2021
 */
 
 #include <ESP8266WiFi.h>
@@ -30,7 +29,7 @@ DHT dht(DHTPin, DHTTYPE);   // Initialize DHT sensor.
 
 // Wifi and MQTT
 
-/// \todo An arduino_secrets file needs to be created in the DHT22_MQTT directory which defines ssid,
+/// \todo "An arduino_secrets.h" file needs to be created in the DHT22_MQTT directory which defines ssid,
 /// password, etc. in the following format:
 /// #define SECRET_SSID "insert_ssid_here"
 #include "arduino_secrets.h" 
@@ -40,19 +39,33 @@ const char* password = SECRET_PASS;
 const char* mqttuser = SECRET_MQTTUSER;
 const char* mqttpass = SECRET_MQTTPASS;
 
+// \note Please refer to the following two initialised variables for viewing the output data.
+// As the ESP8266WebServer is initialised with a host port number of 80, the data can be accessed
+// from a web browser by typing in: [ip address]:80
 ESP8266WebServer server(80);
 const char* mqtt_server = "mqtt.cetools.org";
+
 WiFiClient espClient;
+///\todo: rename client to pubSubClient
 PubSubClient client(espClient);
 long lastMsg = 0;
 char msg[50];
 int value = 0;
 
 // Date and time
+/// \todo change "GB" to "timeZone" to reflect ease of inserting any location for Timezone
 Timezone GB;
 
 
-
+///
+/// 1. Set builtin LED as an output pin and initialised as off (set to high).
+/// 2. Set sensorVCC and blueLED as output pins, which will control the sensor;
+/// sensorVCC as low and blueLED as high will leave the sensor turned off.
+/// 3. Serial connection opened to 115200 bits/s for debugging
+/// 4. DHTPin marked as input and activated in anticipation of sensorVCC being turned on.
+/// 5. WiFi started, webserver started, and date-time set
+/// 6. MQTT server started.
+///
 void setup() {
   // Set up LED to be controllable via broker
   // Initialize the BUILTIN_LED pin as an output
@@ -67,7 +80,7 @@ void setup() {
   pinMode(blueLED, OUTPUT); 
   digitalWrite(blueLED, HIGH);
 
-  // open serial connection for debug info
+  // open serial connection for debug info (115200 bauds)
   Serial.begin(115200);
   delay(100);
 
@@ -80,25 +93,43 @@ void setup() {
   startWebserver();
   syncDate();
 
-  // start MQTT server
+  // start MQTT server on the 1884 port
   client.setServer(mqtt_server, 1884);
   client.setCallback(callback);
 
 }
 
+///
+/// The loop:
+/// 1. Handles clients.
+/// 2. Upon changing of the minute:
+///    a. moisture is read and the value is sent to the MQTT.
+///    b. Timestamp is printed in the serial log for debugging.
+/// 3. Messages processed by client
+///
+
 void loop() {
-  // handler for receiving requests to webserver
+  // handler for receiving requests to webserver.
+  // Specifically, listens for HTTP requests, calling fxns set with server.on().
   server.handleClient();
 
+  /// \todo It might be worth changing minuteChanged() to a delay. This would allow more flexibility in time between measurements,
+  ///  useful for both testing and for the end user
   if (minuteChanged()) {
     readMoisture();
     sendMQTT();
     Serial.println(GB.dateTime("H:i:s")); // UTC.dateTime("l, d-M-y H:i:s.v T")
   }
-  
+
+  // allows client to process incoming msgs and maintain connection to server
   client.loop();
 }
 
+/// 
+/// Reads moisture by powering on the sensor and waiting for the values to stabilise before taking an
+/// analog reading. moisture values are then remapped from the empirically observed low and high values
+/// to the full range of 0-100. Sensor is turned off again and the moisture value is printed.
+///
 void readMoisture(){
   
   // power the sensor
@@ -107,8 +138,9 @@ void readMoisture(){
   delay(100);
   // read the value from the sensor:
   Moisture = analogRead(soilPin);         
-  //Moisture = map(analogRead(soilPin), 0,320, 0, 100);    // note: if mapping work out max value by dipping in water     
-  //stop power 
+  // \todo: need to test these values out by reinserting the sensor into water/air
+  Moisture = map(Moisture, 10, 35, 0, 100);    // note: if mapping work out max value by dipping in water     
+  //stop power
   digitalWrite(sensorVCC, LOW);  
   digitalWrite(blueLED, HIGH);
   delay(100);
@@ -116,6 +148,11 @@ void readMoisture(){
   Serial.println(Moisture);   // read the value from the nails
 }
 
+///
+/// Connect to the pre-defined wifi network. Will continue attempting
+/// to connect indefinitely. IP address (necessary for accessing data from
+/// browser) will be printed.
+///
 void startWifi() {
   // We start by connecting to a WiFi network
   Serial.println();
@@ -131,17 +168,29 @@ void startWifi() {
   Serial.println("");
   Serial.println("WiFi connected");
   Serial.print("IP address: ");
+  // This IP address can be used to access the associated website
   Serial.println(WiFi.localIP());
 }
 
+
+///
+/// Get the date-time based on London time.
+/// \todo Europe/London should probably not be hard-coded in here.
+/// Store as variable (const char* continentCity) at location of GB (soon-to-be timeZone) declaration.
+///
 void syncDate() {
   // get real date and time
   waitForSync();
   Serial.println("UTC: " + UTC.dateTime());
   GB.setLocation("Europe/London");
+  /// \todo rewrite as continentCity + " time: " + GB.dateTime()
   Serial.println("London time: " + GB.dateTime());
 
 }
+
+///
+/// Will begin server based on client requests (both valid and invalid)
+///
 void startWebserver() {
   // when connected and IP address obtained start HTTP server
   server.on("/", handle_OnConnect);
@@ -150,33 +199,43 @@ void startWebserver() {
   Serial.println("HTTP server started");
 }
 
+///
+/// Collects readings of temperature and humidity.
+/// Publishes readings of moisture, humidity and temperature but does not need to collect measurement
+/// because moisture was measured prior to running sendMQTT().
+///
 void sendMQTT() {
 
   if (!client.connected()) {
     reconnect();
   }
+  // allows client to process all incoming messages
   client.loop();
 
   Temperature = dht.readTemperature(); // Gets the values of the temperature
   snprintf (msg, 50, "%.1f", Temperature);
   Serial.print("Publish message for t: ");
   Serial.println(msg);
-  client.publish("student/CASA0014/plant/ucxxxxx/temperature", msg);
+  client.publish("student/CASA0014/plant/ucfnawe/temperature", msg);
 
   Humidity = dht.readHumidity(); // Gets the values of the humidity
   snprintf (msg, 50, "%.0f", Humidity);
   Serial.print("Publish message for h: ");
   Serial.println(msg);
-  client.publish("student/CASA0014/plant/ucxxxxx/humidity", msg);
+  client.publish("student/CASA0014/plant/ucfnawe/humidity", msg);
 
-  //Moisture = analogRead(soilPin);   // moisture read by readMoisture function
   snprintf (msg, 50, "%.0i", Moisture);
   Serial.print("Publish message for m: ");
   Serial.println(msg);
-  client.publish("student/CASA0014/plant/ucxxxxx/moisture", msg);
+  client.publish("student/CASA0014/plant/ucfnawe/moisture", msg);
 
 }
 
+///
+/// This function will.
+/// Specifically, this will print the message to the serial and trigger an LED to match the
+/// first character (i.e. on if the first character is 1).
+///
 void callback(char* topic, byte* payload, unsigned int length) {
   Serial.print("Message arrived [");
   Serial.print(topic);
@@ -186,7 +245,7 @@ void callback(char* topic, byte* payload, unsigned int length) {
   }
   Serial.println();
 
-  // Switch on the LED if an 1 was received as first character
+  // Switch on the LED if 1 was received as first character
   if ((char)payload[0] == '1') {
     digitalWrite(BUILTIN_LED, LOW);   // Turn the LED on (Note that LOW is the voltage level
     // but actually the LED is on; this is because it is active low on the ESP-01)
@@ -196,11 +255,15 @@ void callback(char* topic, byte* payload, unsigned int length) {
 
 }
 
+///
+/// Create a connection to the MQTT server, subscribing to the temp., humidity, and moisture topics
+/// from this particular plant monitor.
+///
 void reconnect() {
   // Loop until we're reconnected
   while (!client.connected()) {
     Serial.print("Attempting MQTT connection...");
-    // Create a random client ID
+    // Create a random client ID so as to avoid accidental overlaps between clients
     String clientId = "ESP8266Client-";
     clientId += String(random(0xffff), HEX);
     
@@ -208,7 +271,9 @@ void reconnect() {
     if (client.connect(clientId.c_str(), mqttuser, mqttpass)) {
       Serial.println("connected");
       // ... and resubscribe
-      client.subscribe("student/CASA0014/plant/ucxxxxx/inTopic");
+      client.subscribe("student/CASA0014/plant/ucfnawe/temperature");
+      client.subscribe("student/CASA0014/plant/ucfnawe/humidity");
+      client.subscribe("student/CASA0014/plant/ucfnawe/moisture");
     } else {
       Serial.print("failed, rc=");
       Serial.print(client.state());
@@ -219,16 +284,26 @@ void reconnect() {
   }
 }
 
+///
+/// Collects temperature and humidity reading, collect and (along with most recent moisture reading) 
+/// sends to server for viewing by web browser
+///
 void handle_OnConnect() {
   Temperature = dht.readTemperature(); // Gets the values of the temperature
   Humidity = dht.readHumidity(); // Gets the values of the humidity
   server.send(200, "text/html", SendHTML(Temperature, Humidity, Moisture));
 }
 
+///
+/// 404 error if handle has not been defined.
+///
 void handle_NotFound() {
   server.send(404, "text/plain", "Not found");
 }
 
+///
+/// HTML markdown for viewing the readings from a web browser
+///
 String SendHTML(float Temperaturestat, float Humiditystat, int Moisturestat) {
   String ptr = "<!DOCTYPE html> <html>\n";
   ptr += "<head><meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0, user-scalable=no\">\n";
