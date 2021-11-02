@@ -29,7 +29,7 @@ DHT dht(DHTPin, DHTTYPE);   // Initialize DHT sensor.
 
 // Wifi and MQTT
 
-/// \todo "An arduino_secrets.h" file needs to be created in the DHT22_MQTT directory which defines ssid,
+/// \note "An arduino_secrets.h" file needs to be created in the DHT22_MQTT directory which defines ssid,
 /// password, etc. in the following format:
 /// #define SECRET_SSID "insert_ssid_here"
 #include "arduino_secrets.h" 
@@ -46,15 +46,14 @@ ESP8266WebServer server(80);
 const char* mqtt_server = "mqtt.cetools.org";
 
 WiFiClient espClient;
-///\todo: rename client to pubSubClient
-PubSubClient client(espClient);
+PubSubClient pubSubClient(espClient);
 long lastMsg = 0;
 char msg[50];
 int value = 0;
 
 // Date and time
-/// \todo change "GB" to "timeZone" to reflect ease of inserting any location for Timezone
-Timezone GB;
+Timezone timeZone;
+const char* continentCity = "Europe/London";
 
 
 ///
@@ -94,8 +93,8 @@ void setup() {
   syncDate();
 
   // start MQTT server on the 1884 port
-  client.setServer(mqtt_server, 1884);
-  client.setCallback(callback);
+  pubSubClient.setServer(mqtt_server, 1884);
+  pubSubClient.setCallback(callback);
 
 }
 
@@ -113,16 +112,14 @@ void loop() {
   // Specifically, listens for HTTP requests, calling fxns set with server.on().
   server.handleClient();
 
-  /// \todo It might be worth changing minuteChanged() to a delay. This would allow more flexibility in time between measurements,
-  ///  useful for both testing and for the end user
   if (minuteChanged()) {
     readMoisture();
     sendMQTT();
-    Serial.println(GB.dateTime("H:i:s")); // UTC.dateTime("l, d-M-y H:i:s.v T")
+    Serial.println(timeZone.dateTime("H:i:s")); // UTC.dateTime("l, d-M-y H:i:s.v T")
   }
 
   // allows client to process incoming msgs and maintain connection to server
-  client.loop();
+  pubSubClient.loop();
 }
 
 /// 
@@ -137,8 +134,8 @@ void readMoisture(){
   digitalWrite(blueLED, LOW);
   delay(100);
   // read the value from the sensor:
-  Moisture = analogRead(soilPin);         
-  // \todo: need to test these values out by reinserting the sensor into water/air
+  Moisture = analogRead(soilPin);
+  /// \note these values may need to change.         
   Moisture = map(Moisture, 10, 35, 0, 100);    // note: if mapping work out max value by dipping in water     
   //stop power
   digitalWrite(sensorVCC, LOW);  
@@ -175,16 +172,14 @@ void startWifi() {
 
 ///
 /// Get the date-time based on London time.
-/// \todo Europe/London should probably not be hard-coded in here.
-/// Store as variable (const char* continentCity) at location of GB (soon-to-be timeZone) declaration.
+
 ///
 void syncDate() {
   // get real date and time
   waitForSync();
   Serial.println("UTC: " + UTC.dateTime());
-  GB.setLocation("Europe/London");
-  /// \todo rewrite as continentCity + " time: " + GB.dateTime()
-  Serial.println("London time: " + GB.dateTime());
+  timeZone.setLocation(continentCity);
+  Serial.println(continentCity + " time: " + timeZone.dateTime());
 
 }
 
@@ -206,28 +201,28 @@ void startWebserver() {
 ///
 void sendMQTT() {
 
-  if (!client.connected()) {
+  if (!pubSubClient.connected()) {
     reconnect();
   }
   // allows client to process all incoming messages
-  client.loop();
+  pubSubClient.loop();
 
   Temperature = dht.readTemperature(); // Gets the values of the temperature
   snprintf (msg, 50, "%.1f", Temperature);
   Serial.print("Publish message for t: ");
   Serial.println(msg);
-  client.publish("student/CASA0014/plant/ucfnawe/temperature", msg);
+  pubSubClient.publish("student/CASA0014/plant/ucfnawe/temperature", msg);
 
   Humidity = dht.readHumidity(); // Gets the values of the humidity
   snprintf (msg, 50, "%.0f", Humidity);
   Serial.print("Publish message for h: ");
   Serial.println(msg);
-  client.publish("student/CASA0014/plant/ucfnawe/humidity", msg);
+  pubSubClient.publish("student/CASA0014/plant/ucfnawe/humidity", msg);
 
   snprintf (msg, 50, "%.0i", Moisture);
   Serial.print("Publish message for m: ");
   Serial.println(msg);
-  client.publish("student/CASA0014/plant/ucfnawe/moisture", msg);
+  pubSubClient.publish("student/CASA0014/plant/ucfnawe/moisture", msg);
 
 }
 
@@ -261,22 +256,22 @@ void callback(char* topic, byte* payload, unsigned int length) {
 ///
 void reconnect() {
   // Loop until we're reconnected
-  while (!client.connected()) {
+  while (!pubSubClient.connected()) {
     Serial.print("Attempting MQTT connection...");
     // Create a random client ID so as to avoid accidental overlaps between clients
     String clientId = "ESP8266Client-";
     clientId += String(random(0xffff), HEX);
     
     // Attempt to connect with clientID, username and password
-    if (client.connect(clientId.c_str(), mqttuser, mqttpass)) {
+    if (pubSubClient.connect(clientId.c_str(), mqttuser, mqttpass)) {
       Serial.println("connected");
       // ... and resubscribe
-      client.subscribe("student/CASA0014/plant/ucfnawe/temperature");
-      client.subscribe("student/CASA0014/plant/ucfnawe/humidity");
-      client.subscribe("student/CASA0014/plant/ucfnawe/moisture");
+      pubSubClient.subscribe("student/CASA0014/plant/ucfnawe/temperature");
+      pubSubClient.subscribe("student/CASA0014/plant/ucfnawe/humidity");
+      pubSubClient.subscribe("student/CASA0014/plant/ucfnawe/moisture");
     } else {
       Serial.print("failed, rc=");
-      Serial.print(client.state());
+      Serial.print(pubSubClient.state());
       Serial.println(" try again in 5 seconds");
       // Wait 5 seconds before retrying
       delay(5000);
@@ -327,9 +322,9 @@ String SendHTML(float Temperaturestat, float Humiditystat, int Moisturestat) {
   ptr += Moisturestat;
   ptr += "</p>";
   ptr += "<p>Sampled on: ";
-  ptr += GB.dateTime("l,");
+  ptr += timeZone.dateTime("l,");
   ptr += "<br>";
-  ptr += GB.dateTime("d-M-y H:i:s T");
+  ptr += timeZone.dateTime("d-M-y H:i:s T");
   ptr += "</p>";
 
   ptr += "</div>\n";
