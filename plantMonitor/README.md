@@ -24,4 +24,4 @@ The DHT22_MQTT script requires a few changes to adapt it to a different monitor:
 5. Set arguments of `pubSubClient.subscribe()` lines to match those of the `pubSubClient.publish()` lines.
 
 ## Viewing data from the plant monitor
-Data can be viewed by openning the `MQTT Explorer` client. Create a connection to `mqtt.cetools.org`. If this plant monitor is currently collecting measurements, you should see data in the topic `student/CASA0014/plant/ucfnawe`.
+Data can be viewed by opening the `MQTT Explorer` client. Create a connection to `mqtt.cetools.org`. If this plant monitor is currently collecting measurements, you should see data in the topic `student/CASA0014/plant/ucfnawe`.
