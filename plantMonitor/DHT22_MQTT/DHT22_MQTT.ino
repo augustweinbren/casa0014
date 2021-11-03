@@ -227,9 +227,8 @@ void sendMQTT() {
 }
 
 ///
-/// This function will.
-/// Specifically, this will print the message to the serial and trigger an LED to match the
-/// first character (i.e. on if the first character is 1).
+/// This will print the message to the serial and trigger an LED to match the
+/// first character (i.e. on if the first character is 1) for subscribed-to payloads.
 ///
 void callback(char* topic, byte* payload, unsigned int length) {
   Serial.print("Message arrived [");
