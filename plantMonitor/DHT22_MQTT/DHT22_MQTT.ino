@@ -136,7 +136,7 @@ void readMoisture(){
   // read the value from the sensor:
   Moisture = analogRead(soilPin);
   /// \note these values may need to change.         
-  Moisture = map(Moisture, 10, 35, 0, 100);    // note: if mapping work out max value by dipping in water     
+  Moisture = map(Moisture, 5, 20, 0, 100);    // note: if mapping work out max value by dipping in water     
   //stop power
   digitalWrite(sensorVCC, LOW);  
   digitalWrite(blueLED, HIGH);
@@ -172,14 +172,14 @@ void startWifi() {
 
 ///
 /// Get the date-time based on London time.
-
 ///
 void syncDate() {
   // get real date and time
   waitForSync();
   Serial.println("UTC: " + UTC.dateTime());
   timeZone.setLocation(continentCity);
-  Serial.println(continentCity + " time: " + timeZone.dateTime());
+  Serial.print(continentCity);
+  Serial.println(" time: " + timeZone.dateTime());
 
 }
 
