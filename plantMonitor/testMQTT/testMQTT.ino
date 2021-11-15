@@ -1,8 +1,9 @@
 /*
- *  Simple test to push data to an MQTT server - uses library from https://pubsubclient.knolleary.net
- *  Duncan Wilson 
+ *  Using the PubSubClient library, this tests the MQTT calls of
+ *  publish and subscribe on mqtt.ce.org
+ *  August Weinbren
  *  CASA0014 - 2 - Plant Monitor Workshop
- *  May 2020
+ *  Nov 2021
  *  
  *  
  *  
@@ -15,7 +16,7 @@
 // Wifi and MQTT
 #include "arduino_secrets.h" 
 /*
-**** please enter your sensitive data in the Secret tab/arduino_secrets.h
+**** please enter your sensitive data in an arduino_secrets.h file
 **** using format below
 
 #define SECRET_SSID "ssid name"

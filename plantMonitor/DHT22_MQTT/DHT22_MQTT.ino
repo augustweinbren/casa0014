@@ -136,7 +136,7 @@ void readMoisture(){
   // read the value from the sensor:
   Moisture = analogRead(soilPin);
   /// \note these values may need to change.         
-  Moisture = map(Moisture, 5, 20, 0, 100);    // note: if mapping work out max value by dipping in water     
+  Moisture = map(Moisture, 0, 22, 0, 100);    // note: if mapping work out max value by dipping in water     
   //stop power
   digitalWrite(sensorVCC, LOW);  
   digitalWrite(blueLED, HIGH);
