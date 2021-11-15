@@ -83,7 +83,7 @@ sudo dpkg -i grafana_8.1.1_armhf.deb
 sudo /bin/systemctl enable grafana-server
 sudo /bin/systemctl start grafana-server
 15. Going to `hostname.local:3000`, you should see the Grafana website. Insert a default username and password of `admin admin`.
-16. Replace the telegraf configuration with a simpler file: `cd /etc/telegraf ; sudo systemctl stop telegraf ; sudo mv telegraf.conf telegraf.conf.backup ; sudo wget https://raw.githubusercontent.com/ucl-casa-ce/casa0014/main/plantMonitor/pi/etc/telegraf/telegraf.conf`
+16. Replace the telegraf configuration with a simpler file: `cd /etc/telegraf ; sudo systemctl stop telegraf ; sudo mv telegraf.conf telegraf.conf.backup ; sudo wget https://raw.githubusercontent.com/augustweinbren/casa0014/main/plantMonitor/pi/etc/telegraf/telegraf.conf`
 17. Edit the `servers` and `topics` to match those where your data is getting published to.
 18. Start telegraf and check for errors. 
 > sudo systemctl start telegraf.service
