@@ -1,7 +1,18 @@
-# Plant Monitor
-Second workshop for CASA0014 - 2 - Plant Monitor
+**Table of Contents**
+- [Description <a name="description"></a>](#description-)
+- [Items Needed <a name="itemsNeeded"></a>](#items-needed-)
+- [Installations <a name="installation"></a>](#installations-)
+- [Adapting and running examples to ensure board is working <a name="tDDArduino"></a>](#adapting-and-running-examples-to-ensure-board-is-working-)
+- [Circuit Prototyping <a name="circuitry"></a>](#circuit-prototyping-)
+- [Raspberry Pi-based data collection and visualisation <a name = "rpi"></a>](#raspberry-pi-based-data-collection-and-visualisation-)
 
-### Items Needed
+## Description <a name="description"></a>
+This directory contains all of the code needed to run a DHT22 and nail-based plant monitor built on a Feather Huzzah microcontroller using an ESP8266 wifi module.
+In particular, humidity, temperature, and moisture readings are collected and sent to an MQTT server and a web server (for testing purposes).
+
+The script which can be uploaded to the microcontroller to perform the aforementioned sensing and publishing can be found in the `DHT22_MQTT` repository. Please refer to the README files in the test script directories for descriptions of each script.
+
+## Items Needed <a name="itemsNeeded"></a>
 - Feather Huzzah ESP8266 WiFi Board
 - Raspberry Pi
 - 2 Nails
@@ -12,19 +23,15 @@ Second workshop for CASA0014 - 2 - Plant Monitor
 - DHT22 Temperature-Humidity sensor
 - Resistors
 
-### Installations
+## Installations <a name="installation"></a>
 1.	Download and install [Arduino IDE](https://www.arduino.cc/en/software) and [MQTT Explorer](https://github.com/thomasnordquist/MQTT-Explorer/releases)
 2.	[Set up a GitHub repo](https://docs.github.com/en/get-started/quickstart/create-a-repo) for the project
 3.	Launch Arduino IDE and Huzzah into USB port
 4.	[Add board via board manager](https://learn.adafruit.com/adafruit-feather-huzzah-esp8266/using-arduino-ide) if unrecognised
 
-## Description
-This directory contains all of the code needed to run a DHT22 and nail-based plant monitor built on a Feather Huzzah microcontroller using an ESP8266 wifi module.
-In particular, humidity, temperature, and moisture readings are collected and sent to an MQTT server and a web server (for testing purposes).
 
-The script which can be uploaded to the microcontroller to perform the aforementioned sensing and publishing can be found in the `DHT22_MQTT` repository. Please refer to the README files in the test script directories for descriptions of each script.
 
-#### Adapting and running examples to ensure board is working
+## Adapting and running examples to ensure board is working <a name="tDDArduino"></a>
 1.	Deploy the [blink example](https://www.arduino.cc/en/Tutorial/BuiltInExamples/Blink) to ensure the board is working
 2.	The [testHTTP](https://github.com/augustweinbren/casa0014/tree/main/plantMonitor/testHTTP) code can be used to test the WiFi connection on the Arduino board. Fill in the ssid, password to match your WiFi network. 
 3.	Upload the code to the board (using the right arrow in the top left) and open the Serial Monitor (at the top right) to check that the device is able to connect to WiFi.and the web client.
@@ -32,7 +39,7 @@ The script which can be uploaded to the microcontroller to perform the aforement
 5.	Test that the MQTT calls of publish and subscribe can be sent by the board with [testMQTT](https://github.com/augustweinbren/casa0014/tree/main/plantMonitor/testMQTT). Create an `arduino_secrets.h` file populated using the syntax described in `testMQTT`. [Ensure that this file is ignored by Git](https://docs.github.com/en/get-started/getting-started-with-git/ignoring-files). Search for the “client.publish” and “client.subscribe” lines and change the topic arguments if you wish. Again upload the file to the board.
 6.	To test this source code, open up MQTT Explorer, creating a connection to the mqtt.cetools.org host under port 1884. Type in the same username and password as you entered into the secrets file. You should observe a “hello world” message that is listed under the topic which you set in the previous step.
 7. To test that the "subscribe" functionality is working properly, use the "publish" pane of MQTT Explorer. Fill in "Topic" with the argument in the client.subscribe command of the reconnect() method, select "raw" as the data type, and type a 1 in the box. Click "publish". The built-in LED on your board should light up. If you type 0 in the box and click "publish" again, the LED should turn off.
-#### Circuit Prototyping
+## Circuit Prototyping <a name="circuitry"></a>
 1. To integrate both the moisture sensor and the DHTT sensor together requires a complex circuit:
 <p>
   <img alt="Moisture sensor circuit powered by digital pin" src="./img/finalDesign.png">
@@ -45,7 +52,7 @@ The script which can be uploaded to the microcontroller to perform the aforement
 
 3. Now make the changes to `DHT22_MQTT` as described in its README.
 
-####Raspberry Pi-based data collection and visualisation
+## Raspberry Pi-based data collection and visualisation <a name = "rpi"></a>
 
 1. Download the Raspberry Pi Imager [https://www.raspberrypi.com/software/], and set up the device using the following tutorial on a MicroSD card plugged into your computer: [https://www.tomshardware.com/uk/reviews/raspberry-pi-headless-setup-how-to,6028.html]. Choose a meaningful hostname.
 2. Insert card into a computer and type: `ssh pi@[hostname].local`
