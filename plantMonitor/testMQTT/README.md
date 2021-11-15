@@ -1,0 +1,1 @@
+testMQTT: Using the `PubSubClient` library, this tests the MQTT calls of publish and subscribe on `mqtt.ce.org`. Specifically, it includes a functions which turns an on-board LED if the first character in a subscribed-to message is 1, and turns it off if the character is different.

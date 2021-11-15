@@ -1,0 +1,1 @@
+This will test that the board is able to connect to WiFi using the `ESP8266WiFi` library, by attempting to get data from `iot.io/data/index.html`.

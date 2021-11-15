@@ -1,0 +1,1 @@
+testEnvWeb: this will test that the DHT22 sensor data will send to a web server. The associated web server can be accessed by copying the IP address from the serial output and appending `:80`.

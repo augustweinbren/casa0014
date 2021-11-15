@@ -1,0 +1,1 @@
+testMoisture: this will test that the nail-based soil sensor can measure moisture in the soil. It prints the moisture values directly

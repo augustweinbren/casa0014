@@ -1,0 +1,1 @@
+testEZtime: Using the `ezTime` library, this will test that the board is able to connect to the NTP server and retrieve and store a date time value
